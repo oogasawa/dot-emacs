@@ -17,8 +17,13 @@
 (package-initialize)
 ;;(package-refresh-contents)
 
+(defun package-install-if-absent (pkg-name)
+  (if (package-installed-p pkg-name)
+    (package-install pkg-name)))
 
-(load-theme 'wombat)
+
+
+(load-theme 'manoj-dark)
 ;;(load-theme 'whiteboard)
 
 ;; adwaita
@@ -38,6 +43,8 @@
 (load-file "~/.emacs.d/bs.el")
 (load-file "~/.emacs.d/buffer-move.el")
 
+(load-file "~/.emacs.d/eshell.el")
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;    Configuration file for Emacs 
 ;;      Osamu Ogasawara 
@@ -52,24 +59,6 @@
 
 
 ;;;=================================================
-;;; Buffer Move
-;;;=================================================
-(require 'buffer-move)
-;; To use it, simply put a (require 'buffer-move) in your ~/.emacs and
-;; define some keybindings. For example, i use :
-
-(global-set-key (kbd "<C-S-up>")     'buf-move-up)
-(global-set-key (kbd "<C-S-down>")   'buf-move-down)
-(global-set-key (kbd "<C-S-left>")   'buf-move-left)
-(global-set-key (kbd "<C-S-right>")  'buf-move-right)
-
-(global-set-key (kbd "C-c <left>")  'windmove-left)
-(global-set-key (kbd "C-c <right>") 'windmove-right)
-(global-set-key (kbd "C-c <up>")    'windmove-up)
-(global-set-key (kbd "C-c <down>")  'windmove-down)
-
-
-;;;=================================================
 ;;; Buffer Switcher
 ;;;=================================================
 (require 'bs)
@@ -80,100 +69,72 @@
 (global-set-key [(f8)]  'bs-cycle-previous)
 
 
+;;;=================================================
+;;; Customizing dired-mode
+;;;   dired reuse directory buffer.
+;;; https://www.emacswiki.org/emacs/DiredReuseDirectoryBuffer
+;;;=================================================
+
+(put 'dired-find-alternate-file 'disabled nil)
 
 ;;;=================================================
 ;;; gtags mode
 ;;;=================================================
 
-(require 'gtags)
+(package-install-if-absent 'ggtags)
+
+(require 'ggtags)
 (global-set-key "\M-t" 'gtags-find-tag)
 (global-set-key "\M-r" 'gtags-find-rtag)
 (global-set-key "\M-s" 'gtags-find-symbol)
 (global-set-key "\C-t" 'gtags-pop-stack)
 
+
 ;;;=================================================
-;;; toggle-truncate-line
+;;; neotree and projectile mode
 ;;;=================================================
-(defun toggle-truncate-lines()
-  "toggle truncate lines"
-  (interactive)
-  (if truncate-lines
-      (setq truncate-lines nil)
-    (setq truncate-lines t))
-  (recenter))
 
-(global-set-key "\C-c\C-l" 'toggle-truncate-lines)
+(package-install-if-absent 'projectile)
+(package-install-if-absent 'neotree)
+
+(projectile-mode +1)
+(define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
+(define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
+
+(require 'neotree)
+(defun neotree-project-dir ()
+    "Open NeoTree using the git root."
+    (interactive)
+    (let ((project-dir (projectile-project-root))
+          (file-name (buffer-file-name)))
+      (neotree-toggle)
+      (if project-dir
+          (if (neo-global--window-exists-p)
+              (progn
+                (neotree-dir project-dir)
+                (neotree-find file-name)))
+        (message "Could not find git project root."))))
+;; (global-set-key [f6] 'neotree-toggle)
+(global-set-key [f6] 'neotree-project-dir)
+(setq projectile-switch-project-action 'neotree-projectile-action)
 
 
 
-;;; Proper setting of [UP] and [DOWN] keys.
-(defun move-to-window-prev-line (arg)
-  "move window previous line"
-  (interactive "p")
-  (progn
-    (if (equal arg nil)
-	(setq arg 1))
-    (while (< 0 arg)
-      (let ((cc (current-column))
-	    (ww (window-width))
-	    (lw nil)
-	    (wc (% (current-column) (1- (window-width)))))
-	(setq arg (1- arg))
-	(if (>= cc (1- ww))
-	    (move-to-column (1+ (- cc ww)))
-	  (progn
-	    (previous-line 1)
-	    (end-of-line 1)
-	    (setq lw (current-column))
-    (if (>= lw ww)
-		(move-to-column (+ (* (/ lw (1- ww)) (1- ww)) wc ))
-	      (move-to-column wc))))))))
-(defun my-next-line (arg)
-  (interactive "p")
-  (if (fboundp 'line-move)
-      (line-move arg)
-    (if (fboundp 'next-line-internal)
-	(next-line-internal arg)
-      (next-line arg))))
 
-(defun move-to-window-next-line (arg)
-  "move window next line"
-  (interactive "p")
-  (progn
-    (if (equal arg nil)
-	(setq arg 1))
-    (while (< 0 arg)
-      (let ((cc (current-column))
-	    (ww (window-width))
-	    (lw nil)
-	    (wc (% (current-column) (1- (window-width)))))
-	(setq arg (1- arg))
-	(end-of-line 1)
-	(setq lw (current-column))
-	(if (< (+ cc (1- ww)) lw)
-	    (move-to-column (+ cc (1- ww)))
-	  (progn
-	    (my-next-line 1)
-	    (move-to-column (% cc (1- ww)))))))))
+;; ;;;=================================================
+;; ;;; toggle-truncate-line
+;; ;;;=================================================
+;; (defun toggle-truncate-lines()
+;;   "toggle truncate lines"
+;;   (interactive)
+;;   (if truncate-lines
+;;       (setq truncate-lines nil)
+;;     (setq truncate-lines t))
+;;   (recenter))
 
-;(define-key global-map "\C-p" 'move-to-window-prev-line)
-;(define-key global-map "\C-n" 'move-to-window-next-line)
-(define-key global-map [up]   'move-to-window-prev-line)
-(define-key global-map [down] 'move-to-window-next-line)
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(package-selected-packages
-   (quote
-	(flymake use-package yaml-mode pcre2el jdee indium w3m tide cypher-mode tss zenburn-theme solarized-theme markdown-mode dash))))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )
+;; (global-set-key "\C-c\C-l" 'toggle-truncate-lines)
+
+
 
 
 
@@ -181,6 +142,13 @@
 ;;; tide (typescript) mode
 ;;;=================================================
 
+(package-install-if-absent 'tide)
+(package-install-if-absent 'company)
+(package-install-if-absent 'use-package)
+(package-install-if-absent 'flymake)
+(package-install-if-absent 'web-mode)
+
+(require `web-mode)
 (defun setup-tide-mode ()
   (interactive)
   (tide-setup)
@@ -204,16 +172,19 @@
 
 
 
-;;;=================================================
-;;; typescript mode
-;;;=================================================
+;;; ---------------------------
 
-
-;; (require 'typescript)
-;; (add-to-list 'auto-mode-alist '("\\.ts\\'" . typescript-mode))
-
-;; (require 'tss)
-;; (setq tss-popup-help-key "C-:")
-;; (setq tss-jump-to-definition-key "C->")
-;; (setq tss-implement-definition-key "C-c i")
-;; (tss-config-default)
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(package-selected-packages
+   (quote
+	(projectile neotree web-mode ctags-update pcre2el use-package tide markdown-mode ibuffer-sidebar ggtags dired-sidebar company))))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
