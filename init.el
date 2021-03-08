@@ -18,7 +18,7 @@
 ;;(package-refresh-contents)
 
 (defun package-install-if-absent (pkg-name)
-  (if (package-installed-p pkg-name)
+  (if (not (package-installed-p pkg-name))
     (package-install pkg-name)))
 
 
@@ -40,9 +40,11 @@
 ;; whiteboard
 ;; wombat
 
+
+(package-install-if-absent 'pcre2el)
+
 (load-file "~/.emacs.d/bs.el")
 (load-file "~/.emacs.d/buffer-move.el")
-
 (load-file "~/.emacs.d/eshell.el")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
