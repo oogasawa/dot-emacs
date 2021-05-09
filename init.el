@@ -1,43 +1,48 @@
+;; This is to support loading from a non-standard .emacs.d
+;; via emacs -q --load "/path/to/standalone.el"
+;; see https://emacs.stackexchange.com/a/4258/22184
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;    Configuration file for Emacs 
-;;      Osamu Ogasawara 
-;;      2020.11.05 (for Emacs v.26)
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(setq user-init-file (or load-file-name (buffer-file-name)))
+(setq user-emacs-directory (file-name-directory user-init-file))
+(setq custom-file (expand-file-name "custom.el" user-emacs-directory))
 
-
-;; Added by Package.el.  This must come before configurations of
-;; installed packages.  Don't delete this line.  If you don't want it,
-;; just comment it out by adding a semicolon to the start of the line.
-;; You may delete these explanatory comments.
 (require 'package)
-
-(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
 (add-to-list 'package-archives '("melpa-stable" . "https://stable.melpa.org/packages/") t)
-
+(add-to-list 'package-archives '("tromey" . "http://tromey.com/elpa/"))
+(add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/") t)
 ;;(add-to-list 'package-archives  '("marmalade" . "http://marmalade-repo.org/packages/") t)
 ;;(add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/") t)
 
+;;(setq package-user-dir (expand-file-name "elpa/" user-emacs-directory))
 (package-initialize)
-;; (package-refresh-contents)
 
+;; Install use-package that we require for managing all other dependencies
 
-(defun package-install-if-absent (pkg-name)
-  (if (not (package-installed-p pkg-name))
-    (package-install pkg-name)))
-;; (defun package-install-if-absent (pkg-name)
-;;   'ignore)
+(unless (package-installed-p 'use-package)
+  (package-refresh-contents)
+  (package-install 'use-package))
 
+;; I find these light-weight and helpful
 
+(use-package which-key
+  :ensure
+  :init
+  (which-key-mode))
 
+(use-package selectrum
+  :ensure
+  :init
+  (selectrum-mode)
+  :custom
+  (completion-styles '(flex substring partial-completion)))
 
 ;;;=================================================
 ;;; Appearance and key-bindings
 ;;;=================================================
+;; Some common sense settings
 
-(load-theme 'manoj-dark)
-;;(load-theme 'whiteboard)
-
+;; (load-theme 'manoj-dark)
+(load-theme 'whiteboard)
 ;; adwaita
 ;; deeper-blue
 ;; dichromacy
@@ -51,6 +56,19 @@
 ;; wheatgrass
 ;; whiteboard
 ;; wombat
+;;(load-theme 'leuven t)
+
+
+(fset 'yes-or-no-p 'y-or-n-p)
+(recentf-mode 1)
+(setq recentf-max-saved-items 100
+      inhibit-startup-message t
+      ring-bell-function 'ignore)
+
+(tool-bar-mode 0)
+(menu-bar-mode 0)
+(when (fboundp 'scroll-bar-mode)
+  (scroll-bar-mode 0))
 
 (setq visible-bell t)       ;; Enable Visual Bell (disable beep sound)
 (setq-default tab-width 4)
@@ -64,174 +82,18 @@
   (message "Use M-x save-buffers-kill-terminal"))
 (global-set-key (kbd "C-x C-c") 'print-message-for-exiting-emacs)
 
-;;;=================================================
-;;; Buffer Switcher
-;;;=================================================
-(load-file "~/.emacs.d/bs.el")
-(require 'bs)
-;(global-unset-key "\C-x\C-b")
-;(global-set-key "\C-x\C-b" 'bs-show)
 
-(global-set-key [(f7)]  'bs-cycle-next)
-(global-set-key [(f8)]  'bs-cycle-previous)
+;; (cond
+;;  ((member "Monaco" (font-family-list))
+;;   (set-face-attribute 'default nil :font "Monaco-12"))
+;;  ((member "Inconsolata" (font-family-list))
+;;   (set-face-attribute 'default nil :font "Inconsolata-12"))
+;;  ((member "Consolas" (font-family-list))
+;;   (set-face-attribute 'default nil :font "Consolas-11"))
+;;  ((member "DejaVu Sans Mono" (font-family-list))
+;;   (set-face-attribute 'default nil :font "DejaVu Sans Mono-10")))
 
-
-;;;=================================================
-;;; Customizing dired-mode
-;;;   dired reuse directory buffer.
-;;; https://www.emacswiki.org/emacs/DiredReuseDirectoryBuffer
-;;;=================================================
-
-;; (put 'dired-find-alternate-file 'disabled nil)
+(load-file (expand-file-name "rust_settings.el" user-emacs-directory))
+(load-file (expand-file-name "general_settings.el" user-emacs-directory))
 
 
-
-;;;=================================================
-;;; Eshell
-;;;=================================================
-
-(package-install-if-absent 'pcre2el)
-(load-file "~/.emacs.d/eshell.el")
-
-
-
-;;;=================================================
-;;; gtags mode
-;;;=================================================
-
-(package-install-if-absent 'ggtags)
-
-(require 'ggtags)
-(global-set-key "\M-t" 'gtags-find-tag)
-(global-set-key "\M-r" 'gtags-find-rtag)
-(global-set-key "\M-s" 'gtags-find-symbol)
-(global-set-key "\C-t" 'gtags-pop-stack)
-
-
-
-;;;=================================================
-;;; neotree and projectile mode
-;;;=================================================
-
-(package-install-if-absent 'projectile)
-(package-install-if-absent 'neotree)
-
-(projectile-mode +1)
-(define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
-(define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
-
-(require 'neotree)
-(defun neotree-project-dir ()
-    "Open NeoTree using the git root."
-    (interactive)
-    (let ((project-dir (projectile-project-root))
-          (file-name (buffer-file-name)))
-      (neotree-toggle)
-      (if project-dir
-          (if (neo-global--window-exists-p)
-              (progn
-                (neotree-dir project-dir)
-                (neotree-find file-name)))
-        (message "Could not find git project root."))))
-;; (global-set-key [f6] 'neotree-toggle)
-(global-set-key [f6] 'neotree-project-dir)
-(setq projectile-switch-project-action 'neotree-projectile-action)
-
-
-
-
-;; ;;;=================================================
-;; ;;; toggle-truncate-line
-;; ;;;=================================================
-;; (defun toggle-truncate-lines()
-;;   "toggle truncate lines"
-;;   (interactive)
-;;   (if truncate-lines
-;;       (setq truncate-lines nil)
-;;     (setq truncate-lines t))
-;;   (recenter))
-
-;; (global-set-key "\C-c\C-l" 'toggle-truncate-lines)
-
-
-
-
-
-;;;=================================================
-;;; tide (typescript) mode
-;;;=================================================
-(package-install-if-absent 'ng2-mode)
-(package-install-if-absent 'tide)
-(package-install-if-absent 'company)
-(package-install-if-absent 'use-package)
-(package-install-if-absent 'flymake)
-(package-install-if-absent 'web-mode)
-
-
-
-(require `web-mode)
-(defun setup-tide-mode ()
-  (interactive)
-  (tide-setup)
-  (flycheck-mode +1)
-  (setq flycheck-check-syntax-automatically '(save mode-enabled))
-  (eldoc-mode +1)
-  (tide-hl-identifier-mode +1)
-  (company-mode +1))
-
-(use-package tide
-  :config
-  (add-hook 'before-save-hook 'tide-format-before-save)
-  (add-hook 'typescript-mode-hook #'setup-tide-mode)
-  (add-to-list 'auto-mode-alist '("\\.tsx\\'" . web-mode))
-  (add-hook 'web-mode-hook
-			(lambda ()
-			  (when (string-equal "tsx" (file-name-extension buffer-file-name))
-				(setup-tide-mode))))
-  (flycheck-add-mode 'typescript-tslint 'web-mode))
-
-
-(with-eval-after-load 'tide
-  (flycheck-add-mode 'typescript-tslint 'ng2-ts-mode)
-  (flycheck-add-mode 'typescript-tide 'ng2-ts-mode)
-)
-
-
-;;;=================================================
-;;; web mode
-;;; https://web-mode.org/
-;;;
-;;; C-c C-n : Jumping between opening / closing HTML tags.
-;;; C-c C-f : Code folding for HTML elements and control blocks.
-;;;
-;;; You can also edit plain js, jsx, css, scss, xml files.
-;;;=================================================
-
-(require 'web-mode)
-
-(add-to-list 'auto-mode-alist '("\\.html?\\'" . web-mode))
-(add-to-list 'auto-mode-alist '("\\.phtml\\'" . web-mode))
-(add-to-list 'auto-mode-alist '("\\.tpl\\.php\\'" . web-mode))
-(add-to-list 'auto-mode-alist '("\\.[agj]sp\\'" . web-mode))
-(add-to-list 'auto-mode-alist '("\\.as[cp]x\\'" . web-mode))
-(add-to-list 'auto-mode-alist '("\\.erb\\'" . web-mode))
-(add-to-list 'auto-mode-alist '("\\.mustache\\'" . web-mode))
-(add-to-list 'auto-mode-alist '("\\.djhtml\\'" . web-mode))
-
-;;; ---------------------------
-
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(jdee-server-dir "~/local/jars")
- '(package-selected-packages
-   (quote
-	(x-path-walker tagedit yatex smartparens jdee ng2-mode ng2-ts-mode projectile neotree web-mode ctags-update pcre2el use-package tide markdown-mode ibuffer-sidebar ggtags dired-sidebar company))))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )

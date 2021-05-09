@@ -13,8 +13,13 @@ node_modules/
 ######################
 
 *~
-elpa
-autosave-list
 
+abbrev_defs
+autosave-list
+# elpa
+.lsp-session*
+projectile-bookmarks.eld
+recentf
+snippets
 
 
