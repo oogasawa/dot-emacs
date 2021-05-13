@@ -15,6 +15,7 @@
 
 ;;(setq package-user-dir (expand-file-name "elpa/" user-emacs-directory))
 (package-initialize)
+(package-refresh-contents)
 
 ;; Install use-package that we require for managing all other dependencies
 
@@ -29,12 +30,12 @@
   :init
   (which-key-mode))
 
-(use-package selectrum
-  :ensure
-  :init
-  (selectrum-mode)
-  :custom
-  (completion-styles '(flex substring partial-completion)))
+;; (use-package selectrum
+;;   :ensure
+;;   :init
+;;   (selectrum-mode)
+;;   :custom
+;;   (completion-styles '(flex substring partial-completion)))
 
 ;;;=================================================
 ;;; Appearance and key-bindings
@@ -95,5 +96,5 @@
 
 (load-file (expand-file-name "rust_settings.el" user-emacs-directory))
 (load-file (expand-file-name "general_settings.el" user-emacs-directory))
-
+(load-file (expand-file-name "java_settings.el" user-emacs-directory))
 
